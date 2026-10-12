@@ -1,0 +1,186 @@
+-- =====================================================
+-- สายเลือดอาชีวะ ไทย - Light Edition (Delta Compatible)
+-- =====================================================
+
+-- สร้าง ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local UIListLayout = Instance.new("UIListLayout")
+
+ScreenGui.Name = "AchiwaHub"
+ScreenGui.Parent = game:GetService("CoreGui") or game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 270)
+MainFrame.Active = true
+MainFrame.Draggable = true -- ลากย้ายหน้าจอได้
+
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "📱 สายเลือดอาชีวะ Hub"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+
+UIListLayout.Parent = MainFrame
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
+
+-- ฟังก์ชันสร้างปุ่มเปิด/ปิด
+local function createButton(name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Parent = MainFrame
+    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Position = UDim2.new(0, 5, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 16
+    btn.Text = name .. " : [OFF]"
+    
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        if state then
+            btn.Text = name .. " : [ON]"
+            btn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        else
+            btn.Text = name .. " : [OFF]"
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        end
+        callback(state)
+    end)
+end
+
+--------------------------------------------------------
+-- 1. ล็อกหัว (Aimbot Head)
+--------------------------------------------------------
+_G.AimbotHead = false
+createButton("🎯 ล็อกหัว (Aimbot)", function(state)
+    _G.AimbotHead = state
+end)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if _G.AimbotHead then
+        local Camera = workspace.CurrentCamera
+        local LocalPlayer = game.Players.LocalPlayer
+        local closestTarget = nil
+        local shortestDist = math.huge
+        
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(plr.Character.Head.Position)
+                if onScreen then
+                    local mousePos = Vector2.new(LocalPlayer:GetMouse().X, LocalPlayer:GetMouse().Y)
+                    local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                    if dist < shortestDist and dist < 400 then
+                        shortestDist = dist
+                        closestTarget = plr.Character.Head
+                    end
+                end
+            end
+        end
+        
+        if closestTarget then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestTarget.Position)
+        end
+    end
+end)
+
+--------------------------------------------------------
+-- 2. ขยาย Hitbox / ระยะตี
+--------------------------------------------------------
+_G.Hitbox = false
+createButton("🥊 ขยาย Hitbox", function(state)
+    _G.Hitbox = state
+    if not state then
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                plr.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+                plr.Character.HumanoidRootPart.Transparency = 1
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if _G.Hitbox then
+            for _, plr in pairs(game.Players:GetPlayers()) do
+                if plr ~= game.Players.LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = plr.Character.HumanoidRootPart
+                    hrp.Size = Vector3.new(15, 15, 15) -- ขยายขนาดกล่องรับดาเมจ
+                    hrp.Transparency = 0.7
+                    hrp.BrickColor = BrickColor.new("Really red")
+                    hrp.Material = Enum.Material.Neon
+                    hrp.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+--------------------------------------------------------
+-- 3. เส้นวาดบอกตำแหน่ง (ESP Line)
+--------------------------------------------------------
+_G.ESPLine = false
+createButton("📏 มองเส้น (ESP Line)", function(state)
+    _G.ESPLine = state
+end)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if _G.ESPLine then
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr ~= game.Players.LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = plr.Character.HumanoidRootPart
+                if not hrp:FindFirstChild("ESP_Box") then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "ESP_Box"
+                    highlight.Parent = plr.Character
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                end
+            end
+        end
+    else
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("ESP_Box") then
+                plr.Character.ESP_Box:Destroy()
+            end
+        end
+    end
+end)
+
+--------------------------------------------------------
+-- 4. ออโต้ฟาร์ม (Auto Farm)
+--------------------------------------------------------
+_G.AutoFarm = false
+createButton("🌾 ออโต้ฟาร์ม (Auto Farm)", function(state)
+    _G.AutoFarm = state
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if _G.AutoFarm then
+            local p = game.Players.LocalPlayer
+            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                for _, target in pairs(workspace:GetChildren()) do
+                    if target:FindFirstChild("Humanoid") and target.Humanoid.Health > 0 and target ~= p.Character then
+                        if target:FindFirstChild("HumanoidRootPart") then
+                            p.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
